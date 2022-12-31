@@ -56,12 +56,25 @@ extension IPTool {
     fileprivate class Fetch {
         
         static func request(_ url: String) async throws -> Data {
-            guard let url = URL(string: url) else {
-                throw URLError(.badURL)
+            return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+                guard let url = URL(string: url) else {
+                    continuation.resume(throwing: URLError(.badURL))
+                    return
+                }
+                let request = URLRequest(url: url)
+                let task = URLSession.shared.dataTask(with: request) { data, _, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    guard let data = data else {
+                        continuation.resume(throwing: URLError(.badServerResponse))
+                        return
+                    }
+                    continuation.resume(returning: data)
+                }
+                task.resume()
             }
-            let request = URLRequest(url: url)
-            let (data, _) = try await URLSession.shared.data(for: request)
-            return data
         }
         
         static func getCloudflareIPRanges() async throws -> [String] {
