@@ -20,20 +20,25 @@ class ContentViewModel: ObservableObject {
         PersistenceController.shared.container.viewContext
     }
     
-    @Published var link: String = ""
-    @Published private(set) var items: [Item] = []
-    
-    private var pinger = Pinger(maxConcurrentPings: 2, pingCount: 8)
+    private var pinger = Pinger(maxConcurrentPings: 18, pingCount: 5)
     private var task: Task<[PingResponse], Never>?
     
     private var ranges: [IPRange] = []
     
-    @Published var results: [PingResponse]? = nil
+    @Published var link: String = ""
+    @Published var percentage: Double = 1000.0 / 1000000.0
     
-    @Published var state: State = .fetchingRanges
+    @Published private(set) var items: [Item] = []
+    @Published private(set) var results: [PingResponse]? = nil
+    @Published private(set) var state: State = .fetchingRanges
+    @Published private(set) var progress: Double = 0.0
     
     init() {
         reloadItems()
+        pinger.$progress
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.progress, on: self)
+            .store(in: &cancelBag)
         Task { [weak self] () in
             do {
                 self?.ranges = try await IPTool.cloudflare()
@@ -46,6 +51,7 @@ class ContentViewModel: ObservableObject {
     
     func startPinging() {
         guard state == .idle else { return }
+        progress = 0
         Task { [weak self] () in
             await self?.set(state: .pinging)
             await self?._startPinging()
@@ -54,17 +60,17 @@ class ContentViewModel: ObservableObject {
     }
     
     private func _startPinging() async {
-        let task = Task { [ranges = self.ranges, pinger = self.pinger] () in
-            return await pinger.start([ranges[0].ips[0]])
+        let task = Task { [ranges = self.ranges, pinger = self.pinger, percentage = self.percentage] () in
+            let ips = ranges.flatMap { $0.ips.shuffled()[0..<Int(Double($0.ips.count) * percentage)] }
+            return await pinger.start(ips)
         }
         self.task = task
         let results = await task.value
-        print(results)
         await set(results: results)
     }
     
     @MainActor private func set(results: [PingResponse]) {
-        self.results = results
+        self.results = results.sorted { $0.loss < $1.loss || ( $0.loss == $1.loss && $0.time < $1.time ) }
     }
     
     @MainActor private func set(state: State) {

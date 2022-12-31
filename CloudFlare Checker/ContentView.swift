@@ -19,12 +19,46 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            Button {
-                viewModel.startPinging()
-            } label: {
-                Text("GO")
+            ScrollView {
+                VStack {
+                    switch viewModel.state {
+                    case .idle:
+                        Slider(value: $viewModel.percentage, in: 0.0...1.0, step: 0.00001)
+                        Text("Ping \(viewModel.percentage * 100.0)% of ips")
+                        Button {
+                            viewModel.startPinging()
+                        } label: {
+                            Text("GO")
+                        }
+                        if let results = viewModel.results {
+                            ForEach(results[0..<min(20, results.count)]) { result in
+                                HStack {
+                                    Text("\(result.ip)")
+                                    Button {
+                                        UIPasteboard.general.string = result.ip
+                                    } label: {
+                                        Text("copy")
+                                    }
+                                    Spacer()
+                                    Text("\(Int(result.loss * 100))%")
+                                    Text("\(Int(result.time * 1000))ms")
+                                }.padding(.horizontal, 10)
+                            }
+                        }
+                    case .fetchingRanges:
+                        Text("Loading...")
+                    case .pinging:
+                        if viewModel.progress == 0 {
+                            Text("Initializing...")
+                        } else {
+                            Text("\(viewModel.progress * 100.0)%")
+                        }
+                    case .error:
+                        Text("Error!")
+                    }
+                }
+                
             }
-
             /*List {
                 ForEach(items) { item in
                     NavigationLink {

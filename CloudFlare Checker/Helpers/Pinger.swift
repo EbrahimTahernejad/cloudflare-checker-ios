@@ -25,6 +25,8 @@ class Pinger {
     private let semaphore: Semaphore
     private let pingCount: Int
     
+    @Published private(set) var progress: Double = 0.0
+    
     init(maxConcurrentPings: Int = 400, pingCount: Int) {
         self.pingCount = pingCount
         semaphore = Semaphore(value: maxConcurrentPings)
@@ -39,7 +41,10 @@ class Pinger {
             }
                   
             var responses = [PingResponse]()
+            var allDoneCount = 0
             for await response in group {
+                allDoneCount += 1
+                progress = Double(allDoneCount) / Double(ips.count)
                 guard let response else { continue }
                 responses.append(response)
             }
@@ -75,6 +80,8 @@ fileprivate class GBPingContainer: NSObject, GBPingDelegate {
     var replied: UInt64 = 0
     var continuation: CheckedContinuation<PingResponse?, Never>? = nil
     var rrts: [TimeInterval] = []
+    var lock = NSRecursiveLock()
+    var isFinished = false
     
     init(ip: String, limit: Int) {
         let ping = GBPing()
@@ -102,13 +109,19 @@ fileprivate class GBPingContainer: NSObject, GBPingDelegate {
     }
     
     func ping(_ pinger: GBPing, didSendPingWith summary: GBPingSummary) {
+        print("Ping \(ip) #\(summary.sequenceNumber)")
+        lock.lock()
+        guard !isFinished else { return }
         guard summary.sequenceNumber < limit else {
             pinger.stop()
             let rrt = rrts.count > 0 ? rrts.reduce(0, +) / TimeInterval(rrts.count) : 0.0
+            isFinished = true
             continuation?.resume(with: .success(.init(ip: ip, transmitted: sent, received: replied, time: rrt)))
+            lock.unlock()
             return
         }
         sent += 1
+        lock.unlock()
     }
     
     func ping(_ pinger: GBPing, didReceiveReplyWith summary: GBPingSummary) {
