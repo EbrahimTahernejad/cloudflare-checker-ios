@@ -46,7 +46,7 @@ class Semaphore: @unchecked Sendable {
             return
         }
         
-        await withUnsafeContinuation { [weak self] continuation in
+        await withUnsafeContinuation { [weak self] (continuation: UnsafeContinuation<Void, Never>) in
             // FIFO
             self?.tasks.insert(.init(continuation: continuation), at: 0)
             self?.unlock()

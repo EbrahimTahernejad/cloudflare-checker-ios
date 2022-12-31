@@ -60,7 +60,7 @@ class ContentViewModel: ObservableObject {
     }
     
     private func _startPinging() async {
-        let task = Task { [ranges = self.ranges, pinger = self.pinger, percentage = self.percentage] () in
+        let task = Task { [ranges = self.ranges, pinger = self.pinger, percentage = self.percentage] () -> [PingResponse] in
             let ips = ranges.flatMap { $0.ips.shuffled()[0..<Int(Double($0.ips.count) * percentage)] }
             return await pinger.start(ips)
         }

@@ -5,6 +5,6 @@ target 'CloudFlare Checker' do
   use_frameworks!
 
   # Pods
-  pod 'GBPing'
+  pod 'GBPing', '~> 1.5.1'
 
 end

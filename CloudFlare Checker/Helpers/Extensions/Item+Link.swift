@@ -18,7 +18,7 @@ extension Item {
     }
     
     func enableTLS() {
-        guard let type else { return }
+        guard let type = type else { return }
         switch type {
         case .vless, .trojan:
             setLink(value: "tls", forKey: "tls")
@@ -28,7 +28,7 @@ extension Item {
     }
     
     func set(ip: String) {
-        guard let type else { return }
+        guard let type = type else { return }
         switch type {
         case .vless, .trojan:
             setLink(address: ip)
@@ -45,7 +45,7 @@ extension Item {
     
     private func decodeJSON() -> (String, NSDictionary)? {
         guard
-            let link,
+            let link = link,
             let colonIndex = link.firstIndex(of: ":")
         else {
             return nil
@@ -93,7 +93,7 @@ extension Item {
     
     private func getLinkAddress() -> (Range<String.Index>, String)? {
         guard
-            let link,
+            let link = link,
             let atSignIndex = link.firstIndex(of: "@")
         else {
             return nil
@@ -109,7 +109,7 @@ extension Item {
     
     private func getLinkQueryRange() -> Range<String.Index>? {
         guard
-            let link,
+            let link = link,
             let queryMarkIndex = link.firstIndex(of: "?")
         else {
             return nil

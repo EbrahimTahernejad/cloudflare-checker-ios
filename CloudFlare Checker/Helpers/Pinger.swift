@@ -45,7 +45,7 @@ class Pinger {
             for await response in group {
                 allDoneCount += 1
                 progress = Double(allDoneCount) / Double(ips.count)
-                guard let response else { continue }
+                guard let response = response else { continue }
                 responses.append(response)
             }
             
