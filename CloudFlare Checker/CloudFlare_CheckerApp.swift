@@ -7,14 +7,21 @@
 
 import SwiftUI
 
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    
+}
+
 @main
-struct CloudFlare_CheckerApp: App {
+struct CloudFlareCheckerApp: App {
     let persistenceController = PersistenceController.shared
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environment(
+                    \.managedObjectContext,
+                     persistenceController.container.viewContext
+                )
         }
     }
 }
